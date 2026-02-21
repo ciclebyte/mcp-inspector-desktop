@@ -7,6 +7,13 @@ use std::path::PathBuf;
 use std::process::Command;
 use tauri::{Emitter, State, Window};
 
+// Windows 平台特定配置：隐藏子进程控制台窗口
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 /// 启动 Inspector 进程
 #[tauri::command]
 pub async fn start_inspector(
@@ -21,9 +28,14 @@ pub async fn start_inspector(
     }));
 
     // 检查 mcp-inspector 是否可用
-    let check_result = Command::new("mcp-inspector.cmd")
-        .arg("--help")
-        .output();
+    let mut check_cmd = Command::new("mcp-inspector.cmd");
+    check_cmd.arg("--help");
+
+    // Windows: 隐藏子进程的控制台窗口
+    #[cfg(target_os = "windows")]
+    check_cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let check_result = check_cmd.output();
 
     if !check_result.is_ok() {
         let error_msg = "未检测到 mcp-inspector。请运行以下命令安装：\nnpm install -g @modelcontextprotocol/inspector";

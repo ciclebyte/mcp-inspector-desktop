@@ -7,6 +7,13 @@ use std::process::{Child, Command, Stdio};
 use std::thread;
 use tauri::{Emitter, Window};
 
+// Windows 平台特定配置：隐藏子进程控制台窗口
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 /// Inspector 进程句柄
 pub struct InspectorHandle {
     child: Option<Child>,
@@ -47,9 +54,13 @@ impl InspectorHandle {
         cmd.current_dir(&working_dir)
             .env("CLIENT_PORT", client_port.to_string())
             .env("SERVER_PORT", server_port.to_string())
-            .env("MCP_AUTO_OPEN_ENABLED", "false")  // 阻止自动打开浏览器
+            .env("MCP_AUTO_OPEN_ENABLED", "false") // 阻止自动打开浏览器
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+
+        // Windows: 隐藏子进程的控制台窗口
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
 
         let _ = window.emit("inspector-log", serde_json::json!({
             "type": "system",
