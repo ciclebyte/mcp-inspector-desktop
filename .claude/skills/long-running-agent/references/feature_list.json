@@ -1,0 +1,55 @@
+{
+  "project_name": "项目名称",
+  "created_date": "YYYY-MM-DD",
+  "features": [
+    {
+      "id": 1,
+      "category": "functional",
+      "priority": "high",
+      "description": "示例：用户可以打开新聊天、输入查询、按回车并看到 AI 响应",
+      "steps": [
+        "导航到主界面",
+        "点击'新聊天'按钮",
+        "验证创建了新对话",
+        "检查聊天区域显示欢迎状态",
+        "验证对话出现在侧边栏"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "category": "ui",
+      "priority": "medium",
+      "description": "示例：界面支持明暗主题切换",
+      "steps": [
+        "打开应用设置",
+        "点击主题切换按钮",
+        "验证界面颜色立即改变",
+        "刷新页面验证主题持久化"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "category": "performance",
+      "priority": "low",
+      "description": "示例：页面加载时间小于 2 秒",
+      "steps": [
+        "清除浏览器缓存",
+        "导航到应用主页",
+        "测量加载完成时间",
+        "验证时间小于 2 秒"
+      ],
+      "passes": false,
+      "notes": ""
+    }
+  ],
+  "metadata": {
+    "total_features": 3,
+    "completed": 0,
+    "pending": 3,
+    "last_updated": "YYYY-MM-DD"
+  }
+}

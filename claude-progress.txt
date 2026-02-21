@@ -1,0 +1,97 @@
+# MCP Inspector Desktop - Development Progress
+
+## 2026-02-21 - Initializer Agent Session
+
+### Completed
+- F-001: Tauri + React + TypeScript 项目初始化
+- F-002: Rust 后端目录结构创建
+- F-003: 前端 UI 框架配置 (TailwindCSS + 基础样式)
+- F-004: @modelcontextprotocol/inspector 依赖安装 (v0.18.0)
+- F-005: AppState 状态管理实现
+- F-006: InspectorHandle 进程管理实现
+- F-007: Tauri Commands 实现
+- F-008: Launcher UI 实现
+- F-009: Inspector Webview 嵌入 (iframe 方案)
+- F-010: 进程控制按钮实现
+
+### Project Structure Created
+```
+mcp-inspector-desktop/
+├── src-tauri/
+│   ├── src/
+│   │   ├── main.rs              # Entry point with Tauri setup
+│   │   ├── state.rs             # AppState management
+│   │   ├── commands.rs          # Tauri commands (6 commands)
+│   │   ├── inspector/
+│   │   │   ├── mod.rs           # Inspector error types
+│   │   │   └── process.rs       # InspectorHandle with Drop trait
+│   │   └── config/
+│   │       ├── mod.rs           # Module exports
+│   │       └── storage.rs       # AppConfig, ServerProfile
+│   ├── Cargo.toml               # Rust dependencies
+│   ├── tauri.conf.json          # Tauri configuration
+│   └── icons/                   # Generated icons
+├── src/
+│   ├── main.tsx                 # React entry point
+│   ├── App.tsx                  # Main app component
+│   ├── components/
+│   │   ├── Launcher.tsx         # Configuration UI
+│   │   └── InspectorView.tsx    # Inspector container
+│   ├── styles/
+│   │   └── globals.css          # TailwindCSS + custom styles
+│   └── lib/
+│       └── utils.ts             # Utility functions
+├── package.json                 # npm configuration
+├── vite.config.ts               # Vite configuration
+├── tsconfig.json                # TypeScript configuration
+├── tailwind.config.js           # TailwindCSS configuration
+├── feature_list.json            # Feature checklist
+├── claude-progress.txt          # This file
+├── init.sh                      # Unix startup script
+└── init.bat                     # Windows startup script
+```
+
+### Technical Details
+
+**Rust Backend:**
+- Tauri 2.x with async command support
+- InspectorHandle with automatic process cleanup via Drop trait
+- Port auto-selection using portpicker crate (5174-5274, 6277-6377)
+- Configuration persistence with atomic writes
+- Profile management (create, read, delete)
+
+**Frontend:**
+- React 18.3 with TypeScript
+- TailwindCSS for styling
+- Dark theme by default
+- Launcher with file browser support
+- Inspector embedding via iframe
+
+### Compilation Status
+- ✅ Rust: Compiles successfully (cargo check passed)
+- ✅ npm: All dependencies installed
+- ⏳ Full integration test pending
+
+### Next Session Tasks
+The following features from the Stability milestone are ready to implement:
+- F-101: AppConfig 配置持久化 (mostly done, needs testing)
+- F-102: ServerProfile 结构体实现 (done, needs testing)
+- F-103: 最近使用 Profile 列表 (UI not implemented)
+- F-104: 实时日志面板 (not implemented)
+- F-105: 端口冲突处理 (implemented in process.rs)
+- F-106: 错误处理与 Toast 提示 (basic error handling done, Toast not implemented)
+- F-107: 进程崩溃恢复 (Drop trait implemented)
+
+### Verification Needed
+1. Run `npm run tauri dev` to test the full application
+2. Test launching an Inspector process
+3. Test stopping/restarting the Inspector
+4. Verify profile saving/loading
+5. Test on Windows, macOS, and Linux if possible
+
+### Notes
+- Icons were generated from public/icon.svg
+- All MVP features (F-001 through F-010) are implemented
+- The application follows the architecture specified in PRD
+- Code comments are in Chinese (matching PRD language)
+- Error handling needs improvement (Toast UI not implemented)
