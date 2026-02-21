@@ -8,7 +8,6 @@ use std::path::PathBuf;
 pub struct ServerProfile {
     pub id: String,
     pub name: String,
-    pub command: String,
     pub working_directory: PathBuf,
     pub env_vars: HashMap<String, String>,
     pub created_at: DateTime<Utc>,

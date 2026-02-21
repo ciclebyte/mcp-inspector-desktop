@@ -1,10 +1,10 @@
-use crate::config::{AppConfig, ServerProfile};
+use crate::config::ServerProfile;
 use crate::inspector::InspectorHandle;
 use crate::state::AppState;
 use chrono::Utc;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::process::Command;
 use tauri::{Emitter, State, Window};
 
 /// 启动 Inspector 进程
@@ -12,39 +12,79 @@ use tauri::{Emitter, State, Window};
 pub async fn start_inspector(
     window: Window,
     state: State<'_, AppState>,
-    command: String,
-    working_dir: String,
-    env_vars: HashMap<String, String>,
-) -> Result<u16, String> {
+) -> Result<(), String> {
+    // 发送启动日志
+    let _ = window.emit("inspector-log", serde_json::json!({
+        "type": "system",
+        "text": "开始启动 Inspector 进程...",
+        "sessionId": ""
+    }));
+
+    // 检查 mcp-inspector 是否可用
+    let check_result = Command::new("mcp-inspector.cmd")
+        .arg("--help")
+        .output();
+
+    if !check_result.is_ok() {
+        let error_msg = "未检测到 mcp-inspector。请运行以下命令安装：\nnpm install -g @modelcontextprotocol/inspector";
+        let _ = window.emit("inspector-log", serde_json::json!({
+            "type": "stderr",
+            "text": error_msg,
+            "sessionId": ""
+        }));
+        return Err("mcp-inspector not found".to_string());
+    }
+
+    let _ = window.emit("inspector-log", serde_json::json!({
+        "type": "system",
+        "text": "检测到 mcp-inspector",
+        "sessionId": ""
+    }));
+
     // 检查是否已有运行实例
     let mut inspector_guard = state
         .inspector
         .lock()
         .map_err(|e| format!("Lock error: {}", e))?;
     if inspector_guard.is_some() {
+        let _ = window.emit("inspector-log", serde_json::json!({
+            "type": "system",
+            "text": "错误: Inspector 已在运行中",
+            "sessionId": ""
+        }));
         return Err("Inspector already running. Please stop current instance first.".to_string());
     }
 
+    // 使用当前目录
+    let work_path = std::env::current_dir()
+        .map_err(|e| format!("Failed to get current dir: {}", e))?;
+
     // 启动进程
     let handle = InspectorHandle::spawn(
-        command,
-        PathBuf::from(working_dir),
-        env_vars.clone(),
+        window.clone(),
+        work_path,
+        HashMap::new(),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        let _ = window.emit("inspector-log", serde_json::json!({
+            "type": "stderr",
+            "text": format!("启动失败: {}", e),
+            "sessionId": ""
+        }));
+        e.to_string()
+    })?;
 
-    let port = handle.client_port();
+    let _ = window.emit("inspector-log", serde_json::json!({
+        "type": "system",
+        "text": format!("Inspector 进程已启动，端口: {}", handle.client_port()),
+        "sessionId": ""
+    }));
 
     // 存储句柄
     *inspector_guard = Some(handle);
     drop(inspector_guard);
 
-    // 发送就绪事件
-    window
-        .emit("inspector-ready", port)
-        .map_err(|e| format!("Failed to emit event: {}", e))?;
-
-    Ok(port)
+    Ok(())
 }
 
 /// 停止 Inspector 进程
@@ -91,7 +131,6 @@ pub fn get_recent_profiles(state: State<'_, AppState>) -> Vec<ServerProfile> {
 pub fn save_profile(
     state: State<'_, AppState>,
     name: String,
-    command: String,
     working_dir: String,
     env_vars: HashMap<String, String>,
 ) -> Result<(), String> {
@@ -100,7 +139,6 @@ pub fn save_profile(
     let profile = ServerProfile {
         id: uuid::Uuid::new_v4().to_string(),
         name,
-        command,
         working_directory: PathBuf::from(working_dir),
         env_vars,
         created_at: Utc::now(),

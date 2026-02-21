@@ -1,161 +1,118 @@
-import { useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { useRef, useEffect, useState } from "react";
 
-interface LauncherProps {
-  onStart: (config: {
-    command: string;
-    workingDir: string;
-    envVars: Record<string, string>;
-  }) => Promise<void>;
+interface LogEntry {
+  type: "stdout" | "stderr" | "system";
+  text: string;
+  timestamp: Date;
 }
 
-export default function Launcher({ onStart }: LauncherProps) {
-  const [command, setCommand] = useState("node ./dist/index.js");
-  const [workingDir, setWorkingDir] = useState("");
-  const [envVars, setEnvVars] = useState<Record<string, string>>({});
-  const [newEnvKey, setNewEnvKey] = useState("");
-  const [newEnvValue, setNewEnvValue] = useState("");
+interface LauncherProps {
+  onStart: () => Promise<void>;
+  logs: LogEntry[];
+  onClearLogs: () => void;
+  wasRunning: boolean;
+}
+
+export default function Launcher({ onStart, logs, onClearLogs, wasRunning }: LauncherProps) {
   const [starting, setStarting] = useState(false);
+  const logPanelOpen = true;
+  const logContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleSelectWorkingDir = async () => {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-    });
-    if (selected && typeof selected === "string") {
-      setWorkingDir(selected);
+  // 自动滚动到日志底部
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  };
-
-  const handleAddEnvVar = () => {
-    if (newEnvKey && newEnvValue) {
-      setEnvVars({ ...envVars, [newEnvKey]: newEnvValue });
-      setNewEnvKey("");
-      setNewEnvValue("");
-    }
-  };
-
-  const handleRemoveEnvVar = (key: string) => {
-    const newVars = { ...envVars };
-    delete newVars[key];
-    setEnvVars(newVars);
-  };
+  }, [logs]);
 
   const handleStart = async () => {
-    if (!workingDir) {
-      alert("请选择工作目录");
-      return;
-    }
     setStarting(true);
     try {
-      await onStart({ command, workingDir, envVars });
+      await onStart();
     } catch (error) {
-      alert(`启动失败: ${error}`);
+      console.error("启动失败:", error);
     } finally {
       setStarting(false);
     }
   };
 
   return (
-    <div className="flex h-full items-center justify-center bg-neutral-900 p-8">
-      <div className="w-full max-w-2xl space-y-6 rounded-lg border border-neutral-800 bg-neutral-950 p-8">
-        <h1 className="text-3xl font-bold text-white">
-          MCP Inspector Desktop
-        </h1>
+    <div className="flex h-full flex-col bg-neutral-900">
+      {/* 主内容区域 */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-6 rounded-lg border border-neutral-800 bg-neutral-950 p-8">
+          <h1 className="text-3xl font-bold text-white text-center">
+            MCP Inspector Desktop
+          </h1>
 
-        {/* 服务器命令 */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-300">
-            服务器命令
-          </label>
-          <input
-            type="text"
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            className="w-full rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
-            placeholder="例如: node ./dist/index.js"
-          />
+          <p className="text-sm text-neutral-400 text-center">
+            {wasRunning ? "Inspector 已停止" : "准备就绪"}
+          </p>
+
+          {/* 状态指示 */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className={`h-3 w-3 rounded-full ${wasRunning ? "bg-red-500" : "bg-green-500"}`} />
+            <span className="text-sm text-neutral-300">
+              {wasRunning ? "已停止" : "准备就绪"}
+            </span>
+          </div>
+
+          {/* 启动按钮 */}
+          <button
+            onClick={handleStart}
+            disabled={starting}
+            className="w-full rounded bg-blue-600 py-3 text-lg font-semibold text-white hover:bg-blue-700 disabled:bg-neutral-700 disabled:text-neutral-500"
+          >
+            {starting ? "启动中..." : "启动 Inspector"}
+          </button>
         </div>
+      </div>
 
-        {/* 工作目录 */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-300">
-            工作目录
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={workingDir}
-              onChange={(e) => setWorkingDir(e.target.value)}
-              className="flex-1 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
-              placeholder="选择服务器项目目录"
-              readOnly
-            />
+      {/* 日志面板 */}
+      {logPanelOpen && (
+        <div className="flex h-64 flex-col border-t border-neutral-800 bg-neutral-950">
+          {/* 日志面板头部 */}
+          <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-900 px-4 py-2">
+            <span className="text-sm font-medium text-neutral-300">
+              启动日志
+            </span>
             <button
-              onClick={handleSelectWorkingDir}
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              onClick={onClearLogs}
+              className="text-xs text-neutral-400 hover:text-neutral-200"
             >
-              浏览
+              清空日志
             </button>
           </div>
-        </div>
 
-        {/* 环境变量 */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-300">
-            环境变量
-          </label>
-          <div className="space-y-2">
-            {Object.entries(envVars).map(([key, value]) => (
-              <div
-                key={key}
-                className="flex items-center gap-2 rounded border border-neutral-700 bg-neutral-900 p-2"
-              >
-                <span className="flex-1 font-mono text-sm text-neutral-300">
-                  {key}={value}
-                </span>
-                <button
-                  onClick={() => handleRemoveEnvVar(key)}
-                  className="text-red-400 hover:text-red-300"
+          {/* 日志内容 */}
+          <div
+            ref={logContainerRef}
+            className="flex-1 overflow-auto p-4 font-mono text-xs"
+          >
+            {logs.length === 0 ? (
+              <div className="text-neutral-500">等待日志输出...</div>
+            ) : (
+              logs.map((log, index) => (
+                <div
+                  key={index}
+                  className={`mb-1 ${
+                    log.type === "stderr"
+                      ? "text-red-400"
+                      : log.type === "system"
+                      ? "text-blue-400"
+                      : "text-neutral-300"
+                  }`}
                 >
-                  删除
-                </button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newEnvKey}
-                onChange={(e) => setNewEnvKey(e.target.value)}
-                className="w-1/3 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
-                placeholder="变量名"
-              />
-              <input
-                type="text"
-                value={newEnvValue}
-                onChange={(e) => setNewEnvValue(e.target.value)}
-                className="flex-1 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
-                placeholder="变量值"
-              />
-              <button
-                onClick={handleAddEnvVar}
-                className="rounded bg-neutral-700 px-4 py-2 text-white hover:bg-neutral-600"
-              >
-                添加
-              </button>
-            </div>
+                  <span className="text-neutral-600">
+                    [{log.timestamp.toLocaleTimeString()}]
+                  </span>{" "}
+                  {log.text}
+                </div>
+              ))
+            )}
           </div>
         </div>
-
-        {/* 启动按钮 */}
-        <button
-          onClick={handleStart}
-          disabled={starting || !workingDir}
-          className="w-full rounded bg-blue-600 py-3 text-lg font-semibold text-white hover:bg-blue-700 disabled:bg-neutral-700 disabled:text-neutral-500"
-        >
-          {starting ? "启动中..." : "启动 Inspector"}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
