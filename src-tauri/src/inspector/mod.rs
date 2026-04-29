@@ -12,26 +12,53 @@ pub fn inspector_command() -> &'static str {
 }
 
 /// 通过 login shell 解析命令的完整路径。
-/// macOS GUI 应用不继承终端 PATH，通过 login shell 执行 `which` 即可获取。
+/// macOS GUI 应用不继承终端 PATH，需要通过 shell 解析。
+/// nvm/fnm/volta 等工具的 PATH 配置在 .zshrc/.bashrc 中（interactive shell 才加载），
+/// 因此依次尝试 login shell 和 login+interactive shell 两种模式。
 pub fn resolve_command_path(cmd: &str) -> Option<String> {
-    // macOS / Linux：通过 login shell 获取 PATH 下的完整路径
     #[cfg(unix)]
     {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-        if let Ok(output) = std::process::Command::new(&shell)
-            .args(["-l", "-c", &format!("which {}", cmd)])
-            .output()
-        {
-            if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path.is_empty() {
-                    return Some(path);
+        let mut shells: Vec<String> = vec![
+            "/bin/zsh".into(),
+            "/bin/bash".into(),
+            "/bin/sh".into(),
+        ];
+        // 将 $SHELL 插入到最前面，优先使用用户默认 shell
+        if let Ok(shell) = std::env::var("SHELL") {
+            shells.insert(0, shell);
+        }
+
+        // 依次尝试不同的 shell flag 组合
+        // "-l -c" : login shell（加载 .zprofile/.bash_profile）
+        // "-l -i -c" : login + interactive shell（额外加载 .zshrc/.bashrc）
+        let flag_modes: Vec<Vec<&str>> = vec![
+            vec!["-l", "-c"],
+            vec!["-l", "-i", "-c"],
+        ];
+
+        let which_cmd = format!("which {}", cmd);
+
+        for shell in &shells {
+            for flags in &flag_modes {
+                let mut args: Vec<&str> = flags.clone();
+                args.push(&which_cmd);
+
+                if let Ok(output) = std::process::Command::new(shell)
+                    .args(&args)
+                    .output()
+                {
+                    if output.status.success() {
+                        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        if !path.is_empty() && !path.contains("not found") {
+                            return Some(path);
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Windows 或 fallback：直接尝试执行
+    // Windows 或 Unix fallback：直接尝试执行
     if std::process::Command::new(cmd)
         .arg("--version")
         .output()

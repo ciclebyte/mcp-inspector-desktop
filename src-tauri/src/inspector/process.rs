@@ -51,6 +51,21 @@ impl InspectorHandle {
 
         // 2. 使用 mcp-inspector CLI（使用解析到的完整路径）
         let mut cmd = Command::new(&inspector_path);
+
+        // 将 mcp-inspector 所在目录注入 PATH，确保 shebang (#!/usr/bin/env node) 能找到 node
+        // nvm/fnm/volta 等工具将 node 和全局 CLI 安装在同一 bin 目录下
+        if let Some(parent) = std::path::Path::new(&inspector_path).parent() {
+            if let Some(dir) = parent.to_str() {
+                let existing_path = std::env::var("PATH").unwrap_or_default();
+                let new_path = if existing_path.is_empty() {
+                    dir.to_string()
+                } else {
+                    format!("{}:{}", dir, existing_path)
+                };
+                cmd.env("PATH", new_path);
+            }
+        }
+
         cmd.current_dir(&working_dir)
             .env("CLIENT_PORT", client_port.to_string())
             .env("SERVER_PORT", server_port.to_string())
