@@ -2,7 +2,7 @@
 
 > A native desktop wrapper for [MCP Inspector](https://github.com/modelcontextprotocol/inspector) — debug MCP Servers without leaving your desktop.
 
-[![Release](https://github.com/cicbyte/mcp-inspector-desktop/actions/workflows/release.yml/badge.svg)](https://github.com/cicbyte/mcp-inspector-desktop/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/cicbyte/mcp-inspector-desktop?sort=semver&logo=github)](https://github.com/cicbyte/mcp-inspector-desktop/releases/latest)
 ![Tauri v2](https://img.shields.io/badge/Tauri-2.0-24C8D8?logo=tauri)
 ![React 18](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)
 ![Rust](https://img.shields.io/badge/Rust-1.70+-DEA584?logo=rust)
