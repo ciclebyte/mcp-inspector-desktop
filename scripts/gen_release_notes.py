@@ -23,7 +23,9 @@ from datetime import date
 
 
 def run(cmd, check=True):
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        cmd, shell=True, capture_output=True, text=True, encoding="utf-8"
+    )
     if check and result.returncode != 0:
         print(f"错误: {cmd}\n{result.stderr.strip()}")
         sys.exit(1)
