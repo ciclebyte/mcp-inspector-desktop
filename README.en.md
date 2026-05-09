@@ -127,6 +127,23 @@ npm run dev
 npm run tauri build
 ```
 
+### Release Process
+
+Two-step release with auto-generated CHANGELOG and manual review:
+
+```bash
+# 1. Generate CHANGELOG entry + .version file
+python scripts/gen_release_notes.py           # auto-increment version
+# python scripts/gen_release_notes.py 0.1.0   # or specify version
+
+# 2. Review CHANGELOG.md
+
+# 3. Execute release (sync version + commit + tag + push)
+python scripts/release.py
+```
+
+After the tag is pushed, GitHub Actions automatically builds multi-platform installers and creates a Release.
+
 ### Project Structure
 
 ```

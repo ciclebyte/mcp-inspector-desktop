@@ -127,6 +127,23 @@ npm run dev
 npm run tauri build
 ```
 
+### 发布流程
+
+采用两步式发布，CHANGELOG 自动生成 + 人工审核：
+
+```bash
+# 1. 生成 CHANGELOG 条目 + .version 文件
+python scripts/gen_release_notes.py           # 自动递增版本号
+# python scripts/gen_release_notes.py 0.1.0   # 或指定版本号
+
+# 2. 审核 CHANGELOG.md 内容
+
+# 3. 执行发布（同步版本号 + commit + tag + push）
+python scripts/release.py
+```
+
+Tag 推送后 GitHub Actions 自动构建多平台安装包并创建 Release。
+
 ### 项目结构
 
 ```

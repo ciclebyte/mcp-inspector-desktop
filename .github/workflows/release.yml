@@ -5,8 +5,16 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
 jobs:
   build:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -86,8 +94,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Download all artifacts
@@ -100,4 +106,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: false
+          generate_release_notes: true
           files: artifacts/*
